@@ -1,0 +1,3 @@
+DEFAULT_MODEL = "gpt-plus"
+DEFAULT_TEMPERATURE = 0.2
+DEFAULT_SYSTEM_PROMPT = "练习习题的系统提示词：你是一名 AI 应用开发助手"
