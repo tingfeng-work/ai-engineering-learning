@@ -1,10 +1,20 @@
-from llm_client import stream_model
+from stream_consumer import consume_stream
 from config import LLM_SYSTEM_PROMPT
-from llm_result import LLMResult
+from context_manager import build_context, estimate_messages_tokens
+from summarize_manager import (
+    split_history_for_summary,
+    summarize_history,
+)
+
+MAX_HISTORY_ROUNDS = 2
+SUMMARY_TRIGGER_ROUNDS = 4
+KEEP_RECENT_ROUNDS = 2
 
 
 def main():
     messages: list[dict[str, str]] = [{"role": "system", "content": LLM_SYSTEM_PROMPT}]
+    conversation_summary: str | None = None
+    summarized_rounds: int = 0
     while True:
         question = input(
             "请输入问题：（输入 exit 或者 quit 退出，输入/history 查询当前消息信息）\n"
@@ -33,69 +43,51 @@ def main():
 
         messages.append({"role": "user", "content": question})
 
-        def consume_stream(messages: list[dict[str, str]]) -> LLMResult:
+        request_messages = build_context(
+            messages=messages,
+            max_history_rounds=MAX_HISTORY_ROUNDS,
+            conversation_summary=conversation_summary,
+        )
+        estimated_prompt_tokens = estimate_messages_tokens(messages=request_messages)
 
-            text_parts: list[str] = []
-            actual_model: str | None = None
-            finish_reason: str | None = None
-            prompt_tokens: int | None = None
-            completion_tokens: int | None = None
-            total_tokens: int | None = None
+        print("\n本次发送给模型的上下文：")
+        for message in request_messages:
+            print(message)
 
-            try:
-                for event in stream_model(messages=messages):
-                    if event.event_type == "content":
-                        if event.content is not None:
-                            text_parts.append(event.content)
-                            print(event.content, end="", flush=True)
-                    elif event.event_type == "finish":
-                        actual_model = event.model
-                        finish_reason = event.finish_reason
-                        prompt_tokens = event.prompt_tokens
-                        completion_tokens = event.completion_tokens
-                        total_tokens = event.total_tokens
-            except Exception as exc:
-                print(f"\n模型调用失败：{exc}")
-                if messages[-1]["role"] == "user":
-                    messages.pop()
+        llm_result = consume_stream(request_messages=request_messages)
+        if llm_result is None:
+            if messages[-1]["role"] == "user":
+                messages.pop()
                 continue
 
-            if actual_model is None:
-                if messages[-1]["role"] == "user":
-                    messages.pop()
-                    print("\n模型调用失败：流式响应未返回实际模型")
-                    continue
-
-            full_text = "".join(text_parts)
-            print()
-
-            if not full_text:
-                if messages[-1]["role"] == "user":
-                    messages.pop()
-                    print("\n模型调用失败：模型回答为空")
-                    continue
-
-            llm_result = LLMResult(
-                content=full_text,
-                model=actual_model,
-                finish_reason=finish_reason,
-                prompt_tokens=prompt_tokens,
-                completion_tokens=completion_tokens,
-                total_tokens=total_tokens,
-            )
-
-            # print(llm_result)
-            # print(messages)
-            print("\n调用信息：")
-            print(f"实际模型：{llm_result.model}")
-            print(f"停止原因：{llm_result.finish_reason}")
-            print(f"输入 Token：{llm_result.prompt_tokens}")
-            print(f"输出 Token：{llm_result.completion_tokens}")
-            print(f"总 Token：{llm_result.total_tokens}")
-            return llm_result
-
-        llm_result = consume_stream(messages=messages)
         messages.append({"role": "assistant", "content": llm_result.content})
+
+        total_rounds = (len(messages) - 1) // 2
+        if total_rounds >= SUMMARY_TRIGGER_ROUNDS:
+            target_summary_round = total_rounds - KEEP_RECENT_ROUNDS
+            new_rounds_to_summarize = target_summary_round - summarized_rounds
+            if new_rounds_to_summarize > 0:
+                summary_messages, _ = split_history_for_summary(
+                    messages=messages, keep_recent_rounds=KEEP_RECENT_ROUNDS
+                )
+                new_summary_messages = summary_messages[
+                    summarized_rounds * 2 : target_summary_round * 2
+                ]
+                new_summary = summarize_history(
+                    summary_messages=new_summary_messages,
+                    previous_summary=conversation_summary,
+                )
+                if new_summary is not None:
+                    conversation_summary = new_summary
+                    summarized_rounds = target_summary_round
+                    print(f"\n本次新增摘要轮数：{new_rounds_to_summarize}")
+                    print(f"当前累计摘要轮数：{summarized_rounds}")
+                    print("当前滚动摘要：")
+                    print(conversation_summary)
+
+        print(f"客户端估计输入 Token: {estimated_prompt_tokens}")
+        print(f"服务端实际输入 Token: {llm_result.prompt_tokens}")
+        print(f"估计差值: {estimated_prompt_tokens-llm_result.prompt_tokens}")
 
 
 if __name__ == "__main__":
