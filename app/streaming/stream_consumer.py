@@ -1,5 +1,5 @@
-from llm_result import LLMResult
-from llm_client import stream_model
+from app.llm.llm_result import LLMResult
+from app.llm.llm_client import stream_model
 
 
 def consume_stream(

@@ -1,4 +1,4 @@
-from stream_consumer import consume_stream
+from app.streaming.consumer import consume_stream
 
 SUMMARY_SYSTEM_PROMPT = """
 你是一名对话历史摘要助手。

@@ -33,7 +33,10 @@ def main():
     print(next(generator))
     print("第二次 next 完成")
 
-    print(next(generator))
+    try:
+        print(next(generator))
+    except StopIteration:
+        print("generator is exhausted")
 
 
 if __name__ == "__main__":

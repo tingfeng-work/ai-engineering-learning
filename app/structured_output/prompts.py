@@ -1,0 +1,1 @@
+JSON_SYSTEM_PROMPT = """璇风敤 json 鐨勫舰寮忚緭鍑猴紝涓嶈緭鍑簃arkdown鍜岃В閲婏紝閬靛惊杩欎釜缁撴瀯锛歿"intent":refun,"confidence":0.25};鍏朵腑 intent 鐨勫唴瀹规槸瀛楃涓诧紝鍙兘鏄痳efund鎴朿onsult鎴朿omplaint鎴杘ther锛沜onfidence鐨勫唴瀹规槸int鎴杅loat锛屽€煎彧鑳藉湪0~1涔嬮棿"""

@@ -1,12 +1,10 @@
+from collections.abc import Iterator
+
 from openai import OpenAI
 
-from config import LLM_API_KEY, LLM_BASE_URL, LLM_MODEL, LLM_SYSTEM_PROMPT
-
-from llm_result import LLMResult
-
-from stream_event import StreamEvent
-
-from collections.abc import Iterator
+from app.config import LLM_API_KEY, LLM_BASE_URL, LLM_MODEL, LLM_SYSTEM_PROMPT
+from app.llm.result import LLMResult
+from app.streaming.event import StreamEvent
 
 client = OpenAI(
     api_key=LLM_API_KEY,

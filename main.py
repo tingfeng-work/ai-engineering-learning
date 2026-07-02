@@ -1,4 +1,4 @@
-from llm_client import ask_model
+from app.llm.client import ask_model
 
 
 def main() -> None:

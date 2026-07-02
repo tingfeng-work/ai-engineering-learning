@@ -1,10 +1,10 @@
-from stream_consumer import consume_stream
-from config import LLM_SYSTEM_PROMPT
-from context_manager import build_context, estimate_messages_tokens
-from summarize_manager import (
+from app.config import LLM_SYSTEM_PROMPT
+from app.conversation.context_manager import build_context, estimate_messages_tokens
+from app.conversation.summary_manager import (
     split_history_for_summary,
     summarize_history,
 )
+from app.streaming.consumer import consume_stream
 
 MAX_HISTORY_ROUNDS = 2
 SUMMARY_TRIGGER_ROUNDS = 4
